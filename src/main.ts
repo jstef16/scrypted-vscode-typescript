@@ -1,11 +1,8 @@
-import dgram = require('dgram');
 // https://developer.scrypted.app/#getting-started
-// package.json contains the metadata (name, interfaces) about this device
-// under the "scrypted" key.
+import dgram = require('dgram');
 import { Entry, EntrySensor, ScryptedDeviceBase, DeviceProvider, ScryptedDeviceType, ScryptedInterface, sdk, ScryptedNativeId } from '@scrypted/sdk';
 
 console.log('Hello World. This will create a virtual powershades window covering.');
-// See "interfaces"  in package.json to add support for more capabilities
 
 class PowerShade extends ScryptedDeviceBase implements Entry, EntrySensor {
     constructor(nativeId?: string) {
@@ -21,7 +18,6 @@ class PowerShade extends ScryptedDeviceBase implements Entry, EntrySensor {
     allTheWayClosed = '0a008fff1a0d000001000000000000000000';
 
     async closeEntry() {
-
         try {
             this.sendUdpRequest(this.allTheWayClosed);
         } catch (_e) {
@@ -58,7 +54,6 @@ class PowerShadeProvider extends ScryptedDeviceBase implements DeviceProvider {
     }
 
     async prepareDevices() {
-        // "Discover" the lights provided by this provider to Scrypted.
         await sdk.deviceManager.onDevicesChanged({
             devices: [
                 {
