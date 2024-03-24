@@ -2,7 +2,7 @@ import dgram = require('dgram');
 // https://developer.scrypted.app/#getting-started
 // package.json contains the metadata (name, interfaces) about this device
 // under the "scrypted" key.
-import { Entry, EntrySensor, ScryptedDeviceBase } from '@scrypted/sdk';
+import { Entry, EntrySensor, ScryptedDeviceBase, DeviceProvider, ScryptedDeviceType, ScryptedInterface, sdk, ScryptedNativeId } from '@scrypted/sdk';
 
 console.log('Hello World. This will create a virtual powershades window covering.');
 // See "interfaces"  in package.json to add support for more capabilities
@@ -11,53 +11,115 @@ class PowerShade extends ScryptedDeviceBase implements Entry, EntrySensor {
     constructor(nativeId?: string) {
         super(nativeId);
         this.on = this.on || false;
+        this.ipAddr = this.info?.ip;
     }
-    
-    client = dgram.createSocket('udp4');
-    ipAddr = '192.168.1.80';
+
+    ipAddr: string | undefined;
     port = 42;
-    allTheWayOpen = '0a 00 5a 7d 1a 0d 00 00 01 00 0a 00 00 00 00 00 00 00';
-    halfOpen = '0a 00 f5 36 1a 0e 00 00 01 00 0c 00 00 00 00 00 00 00';
-    allTheWayClosed = '0a 00 8f ff 1a 0d 00 00 01 00 0a 00 00 00 00 00 00 00';
+    allTheWayOpen = '0a005a7d1a0d000001006400000000000000';
+    mostlyOpen = '0a00312a1a0d000001005800000000000000';
+    allTheWayClosed = '0a008fff1a0d000001000000000000000000';
 
     async closeEntry() {
 
-        this.sendUdpRequest(this.halfOpen);
-        
-        // return new Promise((resolve, reject), => {});
-        throw new Error('Close method not implemented.');
+        try {
+            this.sendUdpRequest(this.allTheWayClosed);
+        } catch (_e) {
+            this.console.log(_e);
+        }
+        this.entryOpen = false
     }
 
     async openEntry() {
-        
-        this.sendUdpRequest(this.allTheWayOpen);
-        throw new Error('Open method not implemented.');
+        try {
+            this.sendUdpRequest(this.allTheWayOpen);
+        } catch (_e) {
+            this.console.log(_e);
+        }
+        this.entryOpen = true
     }
 
-    sendUdpRequest(message: string){
-        
-        this.client.send(message, this.port, this.ipAddr, (err, bytes) =>{
+    sendUdpRequest(message: string) {
+
+        let client = dgram.createSocket('udp4');
+        client.send(Buffer.from(message, 'hex'), this.port, this.ipAddr, (err, bytes) => {
             console.log('UDP error: %s', err);
             console.log('UDP bytes: %s', bytes);
-            this.client.close();
+            client.close();
+        });
+    }
+}
+
+class PowerShadeProvider extends ScryptedDeviceBase implements DeviceProvider {
+    constructor(nativeId?: string) {
+        super(nativeId);
+
+        this.prepareDevices();
+    }
+
+    async prepareDevices() {
+        // "Discover" the lights provided by this provider to Scrypted.
+        await sdk.deviceManager.onDevicesChanged({
+            devices: [
+                {
+                    nativeId: 'livingRoomShade',
+                    name: 'Living Room Shade',
+                    type: ScryptedDeviceType.WindowCovering,
+                    interfaces: [
+                        ScryptedInterface.Entry,
+                        ScryptedInterface.EntrySensor
+                    ],
+                    info: {
+                        ip: '192.168.1.80'
+                    }
+                },
+                {
+                    nativeId: 'bedroomShade',
+                    name: 'Bedroom Shade',
+                    type: ScryptedDeviceType.WindowCovering,
+                    interfaces: [
+                        ScryptedInterface.Entry,
+                        ScryptedInterface.EntrySensor
+                    ],
+                    info: {
+                        ip: '192.168.1.71'
+                    }
+                },
+                {
+                    nativeId: 'loftShade',
+                    name: 'Loft Shade',
+                    type: ScryptedDeviceType.WindowCovering,
+                    interfaces: [
+                        ScryptedInterface.Entry,
+                        ScryptedInterface.EntrySensor
+                    ],
+                    info: {
+                        ip: '192.168.1.69'
+                    }
+                },
+                {
+                    nativeId: 'officeShade',
+                    name: 'Office Shade',
+                    type: ScryptedDeviceType.WindowCovering,
+                    interfaces: [
+                        ScryptedInterface.Entry,
+                        ScryptedInterface.EntrySensor
+                    ],
+                    info: {
+                        ip: '192.168.1.66'
+                    }
+                }
+            ]
         });
     }
 
-    // async turnOff() {
-    //     this.console.log('turnOff was called!');
-    //     this.on = false;
-    // }
-    // async turnOn() {
-    //     // set a breakpoint here.
-    //     this.console.log('turnOn was called!');
+    async getDevice(nativeId: string) {
+        return new PowerShade(nativeId);
+    }
 
-    //     this.console.log("Let's pretend to perform a web request on an API that would turn on a light.");
-    //     const response = await fetch('http://jsonip.com');
-    //     const json = await response.json();
-    //     this.console.log(`my ip: ${json.ip}`);
-
-    //     this.on = true;
-    // }
+    releaseDevice(id: string, nativeId: ScryptedNativeId): Promise<void> {
+        throw new Error('Release device method not implemented.');
+    }
 }
 
-export default PowerShade;
+export default PowerShadeProvider;
