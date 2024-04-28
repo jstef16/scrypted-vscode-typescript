@@ -1,10 +1,10 @@
 // https://developer.scrypted.app/#getting-started
 import dgram = require('dgram');
-import { Entry, EntrySensor, ScryptedDeviceBase, DeviceProvider, ScryptedDeviceType, ScryptedInterface, sdk, ScryptedNativeId } from '@scrypted/sdk';
+import { Entry, EntrySensor, ScryptedDeviceBase, DeviceProvider, Refresh, ScryptedDeviceType, ScryptedInterface, sdk, ScryptedNativeId } from '@scrypted/sdk';
 
 console.log('This will create a virtual powershades window covering.');
 
-class PowerShade extends ScryptedDeviceBase implements Entry, EntrySensor {
+class PowerShade extends ScryptedDeviceBase implements Entry, EntrySensor, Refresh {
     constructor(nativeId?: string) {
         super(nativeId);
         this.on = this.on || false;
@@ -15,9 +15,12 @@ class PowerShade extends ScryptedDeviceBase implements Entry, EntrySensor {
     ipAddr: string | undefined;
     port = 42;
     private socket: dgram.Socket;
+
     allTheWayOpen = '0a005a7d1a0d000001006400000000000000';
     mostlyOpen = '0a00312a1a0d000001005800000000000000';
     allTheWayClosed = '0a008fff1a0d000001000000000000000000';
+
+    stateIndicator = 29;
     getState = '0a00898f1d0d000001000000000000000000';
 
     async closeEntry() {
@@ -51,52 +54,40 @@ class PowerShade extends ScryptedDeviceBase implements Entry, EntrySensor {
         this.socket.send(Buffer.from(message, 'hex'), this.port, this.ipAddr, (err, bytes) => {
             console.log('UDP error: %s', err);
             console.log('UDP bytes: %s', bytes);
-            this.console.log('Port used by UDP client: ', this.socket.address().port);
+            // this.console.log('Port used by UDP client: ', this.socket.address().port);
             if (isInitialRequest) {
                 this.console.log("Subscribing socket to messages at %s:%n", this.ipAddr, this.socket.address().port);
-                this.bindUdpSocket(this.ipAddr, this.socket.address().port);
+                this.subscribeUdpSocket(this.ipAddr, this.socket.address().port);
             }
         });
     }
 
-    // async getRefreshFrequency(): Promise<number> {
-    //     this.console.log('Returned refresh frequency');
-    //     return 15;
-    // }
+    async getRefreshFrequency(): Promise<number> {
+        this.console.log('Returned refresh frequency');
+        return 15;
+    }
 
-    // async refresh(refreshInterface: string, userInitiated: boolean): Promise<void> {
-    //     try {
-    //         this.sendUdpRequest(this.getState);
+    async refresh(refreshInterface: string, userInitiated: boolean): Promise<void> {
+        try {
+            this.sendUdpRequest(this.getState);
+        } catch (_e) {
+            this.console.log(_e);
+        }
+    }
 
-    //     } catch (_e) {
-    //         this.console.log(_e);
-    //     }
-    //     this.console.log('Refresh received response: ')
-    //     this.entryOpen = false
-    // }
+    subscribeUdpSocket(ipAddr: string | undefined, port: number | undefined) {
 
-    bindUdpSocket(ipAddr: string | undefined, port: number | undefined) {
-
-        this.console.log('Binding UDP socket')
+        this.console.log('Subscribing UDP socket to requests')
 
         // Handle incoming messages
         this.socket.on('message', (msg, rinfo) => {
-            console.log(`UDP socket received: ${msg.toString('hex')} from ${rinfo.address}:${rinfo.port}`);
+            // console.log(`UDP socket received: ${msg.toString('hex')} from ${rinfo.address}:${rinfo.port}`);
 
-            // const encodings: BufferEncoding[] = ['ascii', 'base64', 'base64url', 'binary', 'hex', 'latin1', 'ucs-2', 'ucs2', 'utf-8', 'utf16le', 'utf8'];
-
-            // let decodedMessage;
-
-            // for (const encoding of encodings) {
-            //     try {
-            //         decodedMessage = msg.toString(encoding);
-            //         console.log(`Decoded message using ${encoding}:`, decodedMessage);
-            //         // break;
-            //     } catch (_e) {
-            //         console.log(`Failed to decode using ${encoding}:`, _e);
-            //         continue;
-            //     }
-            // }
+            if (msg[4] == this.stateIndicator) {
+                let percentage = msg[8];
+                // this.console.log(`Current percent open: ${percentage}%`)
+                this.entryOpen = percentage == 100
+            }
         });
 
         // Handle errors
@@ -121,7 +112,8 @@ class PowerShadeProvider extends ScryptedDeviceBase implements DeviceProvider {
                     type: ScryptedDeviceType.WindowCovering,
                     interfaces: [
                         ScryptedInterface.Entry,
-                        ScryptedInterface.EntrySensor
+                        ScryptedInterface.EntrySensor,
+                        ScryptedInterface.Refresh
                     ],
                     info: {
                         ip: '192.168.1.80'
@@ -133,7 +125,8 @@ class PowerShadeProvider extends ScryptedDeviceBase implements DeviceProvider {
                     type: ScryptedDeviceType.WindowCovering,
                     interfaces: [
                         ScryptedInterface.Entry,
-                        ScryptedInterface.EntrySensor
+                        ScryptedInterface.EntrySensor,
+                        ScryptedInterface.Refresh
                     ],
                     info: {
                         ip: '192.168.1.71'
@@ -145,7 +138,8 @@ class PowerShadeProvider extends ScryptedDeviceBase implements DeviceProvider {
                     type: ScryptedDeviceType.WindowCovering,
                     interfaces: [
                         ScryptedInterface.Entry,
-                        ScryptedInterface.EntrySensor
+                        ScryptedInterface.EntrySensor,
+                        ScryptedInterface.Refresh
                     ],
                     info: {
                         ip: '192.168.1.69'
@@ -157,7 +151,8 @@ class PowerShadeProvider extends ScryptedDeviceBase implements DeviceProvider {
                     type: ScryptedDeviceType.WindowCovering,
                     interfaces: [
                         ScryptedInterface.Entry,
-                        ScryptedInterface.EntrySensor
+                        ScryptedInterface.EntrySensor,
+                        ScryptedInterface.Refresh
                     ],
                     info: {
                         ip: '192.168.1.66'
