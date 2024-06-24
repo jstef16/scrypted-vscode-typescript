@@ -1,10 +1,10 @@
 // https://developer.scrypted.app/#getting-started
 import dgram = require('dgram');
-import { Entry, EntrySensor, ScryptedDeviceBase, DeviceProvider, Refresh, ScryptedDeviceType, ScryptedInterface, sdk, ScryptedNativeId } from '@scrypted/sdk';
+import { Brightness, ScryptedDeviceBase, DeviceProvider, Refresh, ScryptedDeviceType, ScryptedInterface, sdk, ScryptedNativeId } from '@scrypted/sdk';
 
 console.log('This will create a virtual powershades window covering.');
 
-class PowerShade extends ScryptedDeviceBase implements Entry, EntrySensor, Refresh {
+class PowerShade extends ScryptedDeviceBase implements Brightness, Refresh {
     constructor(nativeId?: string) {
         super(nativeId);
         this.on = this.on || false;
@@ -16,29 +16,60 @@ class PowerShade extends ScryptedDeviceBase implements Entry, EntrySensor, Refre
     port = 42;
     private socket: dgram.Socket;
 
-    allTheWayOpen = '0a005a7d1a0d000001006400000000000000';
-    mostlyOpen = '0a00312a1a0d000001005800000000000000';
-    allTheWayClosed = '0a008fff1a0d000001000000000000000000';
-
     stateIndicator = 29;
     getState = '0a00898f1d0d000001000000000000000000';
 
-    async closeEntry() {
-        try {
-            this.sendUdpRequest(this.allTheWayClosed);
-        } catch (_e) {
-            this.console.log(_e);
+    buildSetString(percentage: number): string {
+        let start = '0a00'
+        let middle = '1a0d00000100'
+        let end = '00000000000000'
+
+        let crcMap: Map<number, string> = new Map();
+
+        crcMap.set(0, '8fff')
+        crcMap.set(10, 'f36e')
+        crcMap.set(12, '9d21')
+        crcMap.set(25, '329b')
+        crcMap.set(38, '2c04')
+        crcMap.set(50, 'f536')
+        crcMap.set(63, '9160')
+        crcMap.set(75, 'f0df')
+        crcMap.set(88, '312a')
+        crcMap.set(94, 'faaa')
+        crcMap.set(95, '29ed')
+        crcMap.set(96, '3772')
+        crcMap.set(97, 'e435')
+        crcMap.set(98, '91fd')
+        crcMap.set(99, '42ba')
+        crcMap.set(100, '5a7d')
+
+        percentage = Math.floor(percentage)
+        let crc = crcMap.get(percentage)
+
+        while (crc === undefined) {
+            percentage++
+
+            this.console.log('Finding CRC for %d', percentage)
+            if (percentage < 0) {
+                percentage = 0
+            } else if (percentage > 100) {
+                percentage = 100
+            }
+
+            crc = crcMap.get(percentage)
         }
-        this.entryOpen = false
+
+        let percentageAsHex = percentage.toString(16).padStart(2, '0')
+        this.console.log(percentageAsHex)
+        return `${start}${crc}${middle}${percentageAsHex}${end}`
     }
 
-    async openEntry() {
+    async setBrightness(brightness: number): Promise<void> {
         try {
-            this.sendUdpRequest(this.allTheWayOpen);
+            this.sendUdpRequest(this.buildSetString(brightness))
         } catch (_e) {
-            this.console.log(_e);
+            this.console.log("Set brightness error: %s", _e);
         }
-        this.entryOpen = true
     }
 
     sendUdpRequest(message: string) {
@@ -69,7 +100,7 @@ class PowerShade extends ScryptedDeviceBase implements Entry, EntrySensor, Refre
 
     async refresh(refreshInterface: string, userInitiated: boolean): Promise<void> {
         try {
-            this.sendUdpRequest(this.getState);
+            this.sendUdpRequest(this.getState)
         } catch (_e) {
             this.console.log(_e);
         }
@@ -85,8 +116,8 @@ class PowerShade extends ScryptedDeviceBase implements Entry, EntrySensor, Refre
 
             if (msg[4] == this.stateIndicator) {
                 let percentage = msg[8];
-                // this.console.log(`Current percent open: ${percentage}%`)
-                this.entryOpen = percentage == 100
+                this.console.log(`Current percent open: ${percentage}%`)
+                this.brightness = percentage
             }
         });
 
@@ -111,8 +142,7 @@ class PowerShadeProvider extends ScryptedDeviceBase implements DeviceProvider {
                     name: 'Living Room Shade',
                     type: ScryptedDeviceType.WindowCovering,
                     interfaces: [
-                        ScryptedInterface.Entry,
-                        ScryptedInterface.EntrySensor,
+                        ScryptedInterface.Brightness,
                         ScryptedInterface.Refresh
                     ],
                     info: {
@@ -124,8 +154,7 @@ class PowerShadeProvider extends ScryptedDeviceBase implements DeviceProvider {
                     name: 'Bedroom Shade',
                     type: ScryptedDeviceType.WindowCovering,
                     interfaces: [
-                        ScryptedInterface.Entry,
-                        ScryptedInterface.EntrySensor,
+                        ScryptedInterface.Brightness,
                         ScryptedInterface.Refresh
                     ],
                     info: {
@@ -137,8 +166,7 @@ class PowerShadeProvider extends ScryptedDeviceBase implements DeviceProvider {
                     name: 'Loft Shade',
                     type: ScryptedDeviceType.WindowCovering,
                     interfaces: [
-                        ScryptedInterface.Entry,
-                        ScryptedInterface.EntrySensor,
+                        ScryptedInterface.Brightness,
                         ScryptedInterface.Refresh
                     ],
                     info: {
@@ -150,8 +178,7 @@ class PowerShadeProvider extends ScryptedDeviceBase implements DeviceProvider {
                     name: 'Office Shade',
                     type: ScryptedDeviceType.WindowCovering,
                     interfaces: [
-                        ScryptedInterface.Entry,
-                        ScryptedInterface.EntrySensor,
+                        ScryptedInterface.Brightness,
                         ScryptedInterface.Refresh
                     ],
                     info: {
