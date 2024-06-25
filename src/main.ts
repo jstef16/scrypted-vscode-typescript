@@ -15,6 +15,8 @@ class PowerShade extends ScryptedDeviceBase implements Brightness, Refresh {
         this.crcMap.set(5, '31b7')
         this.crcMap.set(10, 'f36e')
         this.crcMap.set(12, '9d21')
+        this.crcMap.set(15, '4d26')
+        this.crcMap.set(20, '56cd')
         this.crcMap.set(25, '329b')
         this.crcMap.set(38, '2c04')
         this.crcMap.set(50, 'f536')
@@ -124,11 +126,11 @@ class PowerShade extends ScryptedDeviceBase implements Brightness, Refresh {
 
             if (msg[4] == this.stateIndicator) {
                 let percentage = msg[8];
-                
+
                 let usablePercentage = this.getUsablePercentage(percentage)
                 this.console.log(`Current percent open: ${percentage}% Current usable percentage: ${usablePercentage}% Brightness: ${this.brightness}`)
 
-                if(this.brightness != usablePercentage){
+                if (this.brightness != usablePercentage) {
                     this.brightness = usablePercentage
                     this.console.log(`New brightness is ${this.brightness}`)
                 }
