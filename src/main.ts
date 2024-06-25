@@ -10,6 +10,24 @@ class PowerShade extends ScryptedDeviceBase implements Brightness, Refresh {
         this.on = this.on || false;
         this.ipAddr = this.info?.ip;
         this.socket = dgram.createSocket('udp4');
+
+        this.crcMap.set(0, '8fff')
+        this.crcMap.set(5, '31b7')
+        this.crcMap.set(10, 'f36e')
+        this.crcMap.set(12, '9d21')
+        this.crcMap.set(25, '329b')
+        this.crcMap.set(38, '2c04')
+        this.crcMap.set(50, 'f536')
+        this.crcMap.set(63, '9160')
+        this.crcMap.set(75, 'f0df')
+        this.crcMap.set(88, '312a')
+        this.crcMap.set(94, 'faaa')
+        this.crcMap.set(95, '29ed')
+        this.crcMap.set(96, '3772')
+        this.crcMap.set(97, 'e435')
+        this.crcMap.set(98, '91fd')
+        this.crcMap.set(99, '42ba')
+        this.crcMap.set(100, '5a7d')
     }
 
     ipAddr: string | undefined;
@@ -19,47 +37,37 @@ class PowerShade extends ScryptedDeviceBase implements Brightness, Refresh {
     stateIndicator = 29;
     getState = '0a00898f1d0d000001000000000000000000';
 
-    buildSetString(percentage: number): string {
-        let start = '0a00'
-        let middle = '1a0d00000100'
-        let end = '00000000000000'
+    crcMap: Map<number, string> = new Map();
 
-        let crcMap: Map<number, string> = new Map();
-
-        crcMap.set(0, '8fff')
-        crcMap.set(10, 'f36e')
-        crcMap.set(12, '9d21')
-        crcMap.set(25, '329b')
-        crcMap.set(38, '2c04')
-        crcMap.set(50, 'f536')
-        crcMap.set(63, '9160')
-        crcMap.set(75, 'f0df')
-        crcMap.set(88, '312a')
-        crcMap.set(94, 'faaa')
-        crcMap.set(95, '29ed')
-        crcMap.set(96, '3772')
-        crcMap.set(97, 'e435')
-        crcMap.set(98, '91fd')
-        crcMap.set(99, '42ba')
-        crcMap.set(100, '5a7d')
-
+    getUsablePercentage(percentage: number): number {
         percentage = Math.floor(percentage)
-        let crc = crcMap.get(percentage)
+        let crc = this.crcMap.get(percentage)
 
         while (crc === undefined) {
             percentage++
 
-            this.console.log('Finding CRC for %d', percentage)
+            this.console.log(`Finding usable percentage for ${percentage}`)
             if (percentage < 0) {
                 percentage = 0
             } else if (percentage > 100) {
                 percentage = 100
             }
 
-            crc = crcMap.get(percentage)
+            crc = this.crcMap.get(percentage)
         }
 
-        let percentageAsHex = percentage.toString(16).padStart(2, '0')
+        return percentage
+    }
+
+    buildSetString(percentage: number): string {
+        let start = '0a00'
+        let middle = '1a0d00000100'
+        let end = '00000000000000'
+
+        let usablePercentage = this.getUsablePercentage(percentage)
+        let crc = this.crcMap.get(usablePercentage)
+
+        let percentageAsHex = usablePercentage.toString(16).padStart(2, '0')
         this.console.log(percentageAsHex)
         return `${start}${crc}${middle}${percentageAsHex}${end}`
     }
@@ -68,7 +76,7 @@ class PowerShade extends ScryptedDeviceBase implements Brightness, Refresh {
         try {
             this.sendUdpRequest(this.buildSetString(brightness))
         } catch (_e) {
-            this.console.log("Set brightness error: %s", _e);
+            this.console.log(`Set brightness error: ${_e}`);
         }
     }
 
@@ -83,11 +91,11 @@ class PowerShade extends ScryptedDeviceBase implements Brightness, Refresh {
         }
 
         this.socket.send(Buffer.from(message, 'hex'), this.port, this.ipAddr, (err, bytes) => {
-            console.log('UDP error: %s', err);
-            console.log('UDP bytes: %s', bytes);
-            // this.console.log('Port used by UDP client: ', this.socket.address().port);
+            console.log(`UDP error: ${err}`);
+            console.log(`UDP bytes: ${bytes}`);
+            // this.console.log(`Port used by UDP client: ${this.socket.address().port}`);
             if (isInitialRequest) {
-                this.console.log("Subscribing socket to messages at %s:%n", this.ipAddr, this.socket.address().port);
+                this.console.log(`Subscribing socket to messages at ${this.ipAddr}:${this.socket.address().port}`);
                 this.subscribeUdpSocket(this.ipAddr, this.socket.address().port);
             }
         });
@@ -116,8 +124,14 @@ class PowerShade extends ScryptedDeviceBase implements Brightness, Refresh {
 
             if (msg[4] == this.stateIndicator) {
                 let percentage = msg[8];
-                this.console.log(`Current percent open: ${percentage}%`)
-                this.brightness = percentage
+                
+                let usablePercentage = this.getUsablePercentage(percentage)
+                this.console.log(`Current percent open: ${percentage}% Current usable percentage: ${usablePercentage}% Brightness: ${this.brightness}`)
+
+                if(this.brightness != usablePercentage){
+                    this.brightness = usablePercentage
+                    this.console.log(`New brightness is ${this.brightness}`)
+                }
             }
         });
 
