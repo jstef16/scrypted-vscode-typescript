@@ -24,7 +24,7 @@ class PowerShade extends ScryptedDeviceBase implements Brightness, Refresh {
         this.crcMap.set(10, 'f36e')
         this.crcMap.set(11, '2029')
         this.crcMap.set(12, '9d21')
-        this.crcMap.set(13, 'fff0')
+        this.crcMap.set(13, 'eba9')
         this.crcMap.set(14, '9e61')
         this.crcMap.set(15, '4d26')
         this.crcMap.set(16, '3bc2')
