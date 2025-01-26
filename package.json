@@ -14,7 +14,7 @@
       "scrypted-package-json": "scrypted-package-json"
    },
    "scrypted": {
-      "name": "PowerShades Provider",
+      "name": "Custom Provider",
       "type": "DeviceProvider",
       "interfaces": [
           "DeviceProvider"
