@@ -1,32 +1,50 @@
 // https://developer.scrypted.app/#getting-started
 // package.json contains the metadata (name, interfaces) about this device
 // under the "scrypted" key.
-import { OnOff, ScryptedDeviceBase } from '@scrypted/sdk';
+import { DeviceProvider, Thermometer, ScryptedDeviceBase, TemperatureUnit, ScryptedDeviceType, ScryptedInterface, ScryptedNativeId, sdk } from '@scrypted/sdk';
 
-console.log('Hello World. This will create a virtual OnOff device.');
-// OnOff is a simple binary switch. See "interfaces"  in package.json
-// to add support for more capabilities, like Brightness or Lock.
-
-class TypescriptLight extends ScryptedDeviceBase implements OnOff {
+class OutdoorThermometer extends ScryptedDeviceBase implements Thermometer {
     constructor(nativeId?: string) {
         super(nativeId);
-        this.on = this.on || false;
+        this.temperature = 10;
+        this.temperatureUnit = TemperatureUnit.F;
     }
-    async turnOff() {
-        this.console.log('turnOff was called!');
-        this.on = false;
+    async setTemperatureUnit(temperatureUnit: TemperatureUnit): Promise<void> {
+        this.temperatureUnit = temperatureUnit
     }
-    async turnOn() {
-        // set a breakpoint here.
-        this.console.log('turnOn was called!');
-
-        this.console.log("Let's pretend to perform a web request on an API that would turn on a light.");
-        const response = await fetch('http://jsonip.com');
-        const json = await response.json();
-        this.console.log(`my ip: ${json.ip}`);
-
-        this.on = true;
+    getTemperature(): number | undefined {
+        return this.temperature
     }
 }
 
-export default TypescriptLight;
+class PowerShadeProvider extends ScryptedDeviceBase implements DeviceProvider {
+    constructor(nativeId?: string) {
+        super(nativeId);
+        this.prepareDevices();
+    }
+
+    async prepareDevices() {
+        await sdk.deviceManager.onDevicesChanged({
+            devices: [
+                {
+                    nativeId: 'outdoorThermometer',
+                    name: 'Outdoor Thermometer',
+                    type: ScryptedDeviceType.Sensor,
+                    interfaces: [
+                        ScryptedInterface.Thermometer
+                    ]
+                }
+            ]
+        });
+    }
+
+    async getDevice(nativeId: string) {
+        return new OutdoorThermometer(nativeId);
+    }
+
+    releaseDevice(id: string, nativeId: ScryptedNativeId): Promise<void> {
+        throw new Error('Release device method not implemented.');
+    }
+}
+
+export default OutdoorThermometer;
