@@ -14,10 +14,10 @@
       "scrypted-package-json": "scrypted-package-json"
    },
    "scrypted": {
-      "name": "TypeScript Light",
-      "type": "Light",
+      "name": "PowerShades Provider",
+      "type": "DeviceProvider",
       "interfaces": [
-         "OnOff"
+          "DeviceProvider"
       ]
    },
    "dependencies": {
