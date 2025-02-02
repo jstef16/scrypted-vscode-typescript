@@ -1,8 +1,10 @@
 // https://developer.scrypted.app/#getting-started
 import { DeviceProvider, ScryptedDeviceBase, ScryptedDeviceType, ScryptedInterface, ScryptedNativeId, sdk } from '@scrypted/sdk';
 import PowerShade from './powershade';
+import WebWeather from './web-weather';
 
 class CustomProvider extends ScryptedDeviceBase implements DeviceProvider {
+
     constructor(nativeId?: string) {
         super(nativeId);
         this.prepareDevices();
@@ -58,13 +60,26 @@ class CustomProvider extends ScryptedDeviceBase implements DeviceProvider {
                     info: {
                         ip: '192.168.1.66'
                     }
+                },
+                {
+                    nativeId: 'webWeather',
+                    name: 'Web Weather',
+                    type: ScryptedDeviceType.Sensor,
+                    interfaces: [
+                        ScryptedInterface.AirQualitySensor,
+                        ScryptedInterface.Refresh,
+                        ScryptedInterface.Thermometer
+                    ],
                 }
             ]
         });
     }
 
     async getDevice(nativeId: string) {
-        return new PowerShade(nativeId);
+        if (nativeId.endsWith("Shade"))
+            return new PowerShade(nativeId);
+
+        return new WebWeather(nativeId);
     }
 
     releaseDevice(id: string, nativeId: ScryptedNativeId): Promise<void> {

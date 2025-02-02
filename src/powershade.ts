@@ -183,7 +183,7 @@ class PowerShade extends ScryptedDeviceBase implements Brightness, Refresh {
     }
 
     async getRefreshFrequency(): Promise<number> {
-        this.console.log('Returned refresh frequency');
+        this.console.log('Powershades returned refresh frequency');
         return 15;
     }
 
