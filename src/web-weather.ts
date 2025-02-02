@@ -1,12 +1,12 @@
-import { AirQuality, AirQualitySensor, ScryptedDeviceBase, TemperatureUnit, Thermometer } from '@scrypted/sdk';
+import { AirQuality, AirQualitySensor, Refresh, ScryptedDeviceBase, TemperatureUnit, Thermometer } from '@scrypted/sdk';
 import { Constants } from './constants';
 
-class WebWeather extends ScryptedDeviceBase implements AirQualitySensor, Thermometer {
+class WebWeather extends ScryptedDeviceBase implements AirQualitySensor, Refresh, Thermometer {
 
     lastUpdatedAt: number
     
     airQualityUrl = `https://api.openweathermap.org/data/2.5/air_pollution?lat=${Constants.WEATHER_LAT}&lon=${Constants.WEATHER_LONG}&appid=${Constants.WEATHER_API_KEY}`
-    weatherUrl = `https://api.openweathermap.org/data/2.5/weather?lat=${Constants.WEATHER_LAT}&lon=${Constants.WEATHER_LONG}&appid=${Constants.WEATHER_API_KEY}&units=imperial`
+    weatherUrl = `https://api.openweathermap.org/data/2.5/weather?lat=${Constants.WEATHER_LAT}&lon=${Constants.WEATHER_LONG}&appid=${Constants.WEATHER_API_KEY}&units=metric`
 
     aqiMap: AirQuality[] = [
         AirQuality.Unknown,
@@ -30,23 +30,24 @@ class WebWeather extends ScryptedDeviceBase implements AirQualitySensor, Thermom
     }
 
     getTemperature(): number | undefined {
-        if (Date.now() - this.lastUpdatedAt < 300000) {
-            this.refreshData();
-        }
         return this.temperature
     }
 
     getAirQuality(): AirQuality | undefined {
-        if (Date.now() - this.lastUpdatedAt < 300000) {
-            this.refreshData();
-        }
         return this.airQuality
     }
 
-    async refreshData(): Promise<any> {
-        this.lastUpdatedAt = Date.now()
-        this.refreshTemp()
-        this.refreshAirQuality()
+    async getRefreshFrequency(): Promise<number> {
+        this.console.log('Web weather returned refresh frequency');
+        return 300;
+    }
+
+    async refresh(): Promise<any> {
+        if (Date.now() - this.lastUpdatedAt < 300000) {
+            this.lastUpdatedAt = Date.now()
+            this.refreshTemp()
+            this.refreshAirQuality()
+        }
     }
 
     async refreshTemp(): Promise<any> {
@@ -70,6 +71,7 @@ class WebWeather extends ScryptedDeviceBase implements AirQualitySensor, Thermom
     }
 
     mapAirQuality(aqiNumber: number): AirQuality {
+        this.console.log(`Mapping aqiNumber ${aqiNumber}`)
         return this.aqiMap[aqiNumber] || AirQuality.Unknown
     }
 }

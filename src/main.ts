@@ -66,8 +66,9 @@ class CustomProvider extends ScryptedDeviceBase implements DeviceProvider {
                     name: 'Web Weather',
                     type: ScryptedDeviceType.Sensor,
                     interfaces: [
-                        ScryptedInterface.Thermometer,
-                        ScryptedInterface.AirQualitySensor
+                        ScryptedInterface.AirQualitySensor,
+                        ScryptedInterface.Refresh,
+                        ScryptedInterface.Thermometer
                     ],
                 }
             ]
