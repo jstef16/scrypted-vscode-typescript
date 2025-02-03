@@ -20,7 +20,7 @@ class WebWeather extends ScryptedDeviceBase implements AirQualitySensor, Refresh
     constructor(nativeId?: string) {
         super(nativeId);
         this.airQuality = AirQuality.Unknown;
-        this.lastUpdatedAt = Date.now();
+        this.lastUpdatedAt = Date.now() - 300000;
         this.temperature = undefined;
         this.temperatureUnit = TemperatureUnit.F;
     }
@@ -43,7 +43,9 @@ class WebWeather extends ScryptedDeviceBase implements AirQualitySensor, Refresh
     }
 
     async refresh(): Promise<any> {
-        if (Date.now() - this.lastUpdatedAt < 300000) {
+        // this.console.log(`Now: ${Date.now()}`)
+        // this.console.log(`lastUpdatedAt: ${this.lastUpdatedAt}`)
+        if (Date.now() - this.lastUpdatedAt > 300000) {
             this.lastUpdatedAt = Date.now()
             this.refreshTemp()
             this.refreshAirQuality()

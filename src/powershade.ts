@@ -172,8 +172,8 @@ class PowerShade extends ScryptedDeviceBase implements Brightness, Refresh {
         }
 
         this.socket.send(Buffer.from(message, 'hex'), this.port, this.ipAddr, (err, bytes) => {
-            console.log(`UDP error: ${err}`);
-            console.log(`UDP bytes: ${bytes}`);
+            // console.log(`UDP error: ${err}`);
+            // console.log(`UDP bytes: ${bytes}`);
             // this.console.log(`Port used by UDP client: ${this.socket.address().port}`);
             if (isInitialRequest) {
                 this.console.log(`Subscribing socket to messages at ${this.ipAddr}:${this.socket.address().port}`);
